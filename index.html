@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="A simple PWA to access user location">
+  <title>Geolocation PWA</title>
+  
+  <!-- Add manifest for PWA -->
+  <link rel="manifest" href="manifest.json">
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      margin-bottom: 20px;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Geolocation PWA</h1>
+  <p id="message">Fetching location...</p>
+  <p id="location"></p>
+  <button id="settingsBtn" style="display:none;" onclick="goToSettings()">Go to Location Settings</button>
+
+  <script>
+    // Function to check location permission status
+    function checkPermissionStatus() {
+      if (navigator.permissions) {
+        navigator.permissions.query({ name: 'geolocation' }).then(function (result) {
+          if (result.state === 'granted') {
+            getLocation();
+          } else if (result.state === 'prompt') {
+            // Request location if it has not been asked yet
+            getLocation();
+          } else if (result.state === 'denied') {
+            showError('Permission denied. Please allow location access in your browser settings.');
+            document.getElementById('settingsBtn').style.display = 'block';
+          }
+
+          // Watch for permission changes
+          result.onchange = function () {
+            if (result.state === 'granted') {
+              getLocation();
+            }
+          };
+        });
+      } else {
+        // Fallback for older browsers without Permissions API
+        getLocation();
+      }
+    }
+
+    // Function to get user location
+    function getLocation() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            document.getElementById('message').textContent = 'Location fetched successfully!';
+            document.getElementById('location').textContent = 
+              'Latitude: ' + position.coords.latitude + ', Longitude: ' + position.coords.longitude;
+            document.getElementById('settingsBtn').style.display = 'none';
+          },
+          (error) => {
+            switch (error.code) {
+              case error.PERMISSION_DENIED:
+                showError('Location permission denied. Please enable it in your settings.');
+                break;
+              case error.POSITION_UNAVAILABLE:
+                showError('Location information is unavailable.');
+                break;
+              case error.TIMEOUT:
+                showError('Location request timed out.');
+                break;
+              default:
+                showError('An unknown error occurred.');
+            }
+            document.getElementById('settingsBtn').style.display = 'block';
+          }
+        );
+      } else {
+        showError('Geolocation is not supported by this browser.');
+      }
+    }
+
+    // Function to show error messages
+    function showError(message) {
+      document.getElementById('message').textContent = message;
+    }
+
+    // Function to prompt user to go to settings (Note: This is just an alert; direct navigation isn't possible)
+    function goToSettings() {
+      alert('Please enable location services in your device settings.');
+    }
+
+    // Check location permissions on page load
+    checkPermissionStatus();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/service-worker.js')
+          .then(registration => {
+            console.log('ServiceWorker registration successful:', registration);
+          })
+          .catch(error => {
+            console.log('ServiceWorker registration failed:', error);
+          });
+      });
+    }
+  </script>
+  
+
+</body>
+</html>
